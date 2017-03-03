@@ -23,6 +23,8 @@ read -p "Enter the WordPress plugin slug: " SVN_REPO_SLUG
 echo "---------------------------------------------------------------------"
 clear
 
+echo "Now processing..."
+
 SVN_REPO_URL="https://plugins.svn.wordpress.org"
 
 # Set WordPress.org Plugin URL
@@ -51,25 +53,53 @@ clear
 TEMP_GITHUB_REPO=${GITHUB_REPO_NAME}"-git"
 
 # Delete old GitHub cache just incase it was not cleaned before after the last release.
-rm -Rf $TEMP_GITHUB_REPO
+rm -Rf $ROOT_PATH$TEMP_GITHUB_REPO
+
+echo "---------------------------------------------------------------------"
+echo "Is the line secure?"
+echo "---------------------------------------------------------------------"
+echo " - y for SSH"
+echo " - n for HTTPS"
+read -p "" SECURE_LINE
 
 # Set GitHub Repository URL
-GIT_REPO="https://github.com/"${GITHUB_USER}"/"${GITHUB_REPO_NAME}".git"
+if [[ ${SECURE_LINE} = "y" ]]
+then
+	GIT_REPO="git@github.com:"${GITHUB_USER}"/"${GITHUB_REPO_NAME}".git"
+else
+	GIT_REPO="https://github.com/"${GITHUB_USER}"/"${GITHUB_REPO_NAME}".git"
+fi;
+
+clear
 
 # Clone Git repository
 echo "Cloning GIT repository from GitHub"
 git clone --progress $GIT_REPO $TEMP_GITHUB_REPO || { echo "Unable to clone repo."; exit 1; }
 
 # Move into the temporary GitHub folder
-cd $TEMP_GITHUB_REPO
-
-# List Branches
+cd $ROOT_PATH$TEMP_GITHUB_REPO
 clear
-git fetch origin
+
+# LIST BRANCHES
+echo "---------------------------------------------------------------------"
+read -p "Which remote are we fetching? Default is 'origin'" ORIGIN
+echo "---------------------------------------------------------------------"
+
+# IF REMOTE WAS LEFT EMPTY THEN FETCH ORIGIN BY DEFAULT
+if [[ -z ${ORIGIN} ]]
+then
+	git fetch origin
+
+	# Set ORIGIN as origin if left blank
+	ORIGIN=origin
+else
+	git fetch ${ORIGIN}
+fi;
+
 echo "Which branch contains the updated asset files?"
 git branch -r || { echo "Unable to list branches."; exit 1; }
 echo ""
-read -p "origin/" BRANCH
+read -p ${ORIGIN} "/" BRANCH
 
 # Switch Branch
 echo "Switching to branch"
@@ -81,6 +111,7 @@ rm -Rf .git
 rm -Rf .github
 rm -Rf tests
 rm -Rf apigen
+rm -Rf node_modules
 rm -f .gitattributes
 rm -f .gitignore
 rm -f .gitmodules
@@ -88,6 +119,8 @@ rm -f .jscrsrc
 rm -f .jshintrc
 rm -f phpunit.xml.dist
 rm -f .editorconfig
+rm -f *.lock
+rm -f *.rb
 rm -f *.js
 rm -f *.json
 rm -f *.xml
@@ -134,8 +167,8 @@ clear
 # Remove the temporary directories
 echo "Cleaning Up..."
 cd "../"
-rm -Rf $TEMP_GITHUB_REPO
-rm -Rf $TEMP_SVN_REPO
+rm -Rf $ROOT_PATH$TEMP_GITHUB_REPO
+rm -Rf $ROOT_PATH$TEMP_SVN_REPO
 
 # Done
 echo "Update Done."
