@@ -99,7 +99,7 @@ fi;
 echo "Which branch contains the updated asset files?"
 git branch -r || { echo "Unable to list branches."; exit 1; }
 echo ""
-read -p ${ORIGIN} "/" BRANCH
+read -p ${ORIGIN}"/"${BRANCH}
 
 # Switch Branch
 echo "Switching to branch"
