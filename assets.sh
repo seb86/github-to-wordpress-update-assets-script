@@ -106,7 +106,7 @@ echo "Switching to branch"
 git checkout ${BRANCH} || { echo "Unable to checkout branch."; exit 1; }
 
 # Remove unwanted files and folders
-echo "Removing unwanted files"
+echo "Removing unwanted files..."
 rm -Rf .git
 rm -Rf .github
 rm -Rf tests
@@ -132,30 +132,31 @@ rm -f *.sh
 rm -f *.php
 rm -f *.txt
 
+read -p "Enter the directory from your GitHub repository where the assets are stored: " ASSETS_FOLDER
+
+# Copy GitHub asset files to SVN temporary folder.
+cp -prv -f -R ${ASSETS_FOLDER}"/." "../"${TEMP_SVN_REPO}"/"
+
 # Move into the SVN temporary folder
-cd "../"$TEMP_SVN_REPO
+cd "../"${TEMP_SVN_REPO}
 
 # Update SVN
 echo "Updating SVN"
 svn update || { echo "Unable to update SVN."; exit 1; }
 
-read -p "Enter the directory from your GitHub repository where the assets are stored: " ASSETS_FOLDER
-
-# Copy GitHub asset files to SVN temporary folder.
-cp -R "../"${TEMP_GITHUB_REPO}"/"${ASSETS_FOLDER} "../"${TEMP_SVN_REPO}"/"
-
-# Add all PNG files.
+# Add all JPG and PNG files.
 svn add --force *".png"
+svn add --force *".jpg"
 
 # SVN Commit
 clear
-echo "Showing SVN status."
+echo "Getting SVN Status."
 svn status --show-updates
 
 # Deploy Update
 echo ""
-echo "Committing asset files to WordPress.org..."
-svn commit -m "Updated asset files for "${SVN_REPO_SLUG}"" || {
+echo "Committing assets to WordPress.org..."
+svn commit -m "Updated assets for "${SVN_REPO_SLUG}"" || {
 	echo "Unable to commit. Loading last log.";
 	svn log -l 1
 	exit 1;
