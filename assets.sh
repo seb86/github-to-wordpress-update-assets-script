@@ -1,6 +1,5 @@
 #!/bin/sh
 
-set -e
 clear
 
 # ASK INFO
@@ -23,7 +22,9 @@ read -p "Enter the WordPress plugin slug: " SVN_REPO_SLUG
 echo "---------------------------------------------------------------------"
 clear
 
+echo "---------------------------------------------------------------------"
 echo "Now processing..."
+echo "---------------------------------------------------------------------"
 
 SVN_REPO_URL="https://plugins.svn.wordpress.org"
 
@@ -37,16 +38,15 @@ TEMP_SVN_REPO=${SVN_REPO_SLUG}"-svn"
 rm -Rf $ROOT_PATH$TEMP_SVN_REPO
 
 # CHECKOUT SVN DIR IF NOT EXISTS
-if [[ ! -d $TEMP_SVN_REPO ]];
-then
+if [[ ! -d $TEMP_SVN_REPO ]]; then
 	echo "Checking out WordPress.org plugin assets."
 	svn checkout $SVN_REPO $TEMP_SVN_REPO || { echo "Unable to checkout repo."; exit 1; }
 fi
 
+echo "---------------------------------------------------------------------"
 read -p "Enter your GitHub username: " GITHUB_USER
-clear
-
-read -p "Now enter the GitHub repository slug: " GITHUB_REPO_NAME
+echo "---------------------------------------------------------------------"
+read -p "Enter repository slug: " GITHUB_REPO_NAME
 clear
 
 # Set temporary folder for GitHub.
@@ -63,8 +63,7 @@ echo " - n for HTTPS"
 read -p "" SECURE_LINE
 
 # Set GitHub Repository URL
-if [[ ${SECURE_LINE} = "y" ]]
-then
+if [[ ${SECURE_LINE} = "y" ]]; then
 	GIT_REPO="git@github.com:"${GITHUB_USER}"/"${GITHUB_REPO_NAME}".git"
 else
 	GIT_REPO="https://github.com/"${GITHUB_USER}"/"${GITHUB_REPO_NAME}".git"
@@ -73,21 +72,22 @@ fi;
 clear
 
 # Clone Git repository
+echo "---------------------------------------------------------------------"
 echo "Cloning GIT repository from GitHub"
+echo "---------------------------------------------------------------------"
 git clone --progress $GIT_REPO $TEMP_GITHUB_REPO || { echo "Unable to clone repo."; exit 1; }
 
 # Move into the temporary GitHub folder
 cd $ROOT_PATH$TEMP_GITHUB_REPO
 clear
 
-# LIST BRANCHES
+# Which remote?
 echo "---------------------------------------------------------------------"
 read -p "Which remote are we fetching? Default is 'origin'" ORIGIN
 echo "---------------------------------------------------------------------"
 
 # IF REMOTE WAS LEFT EMPTY THEN FETCH ORIGIN BY DEFAULT
-if [[ -z ${ORIGIN} ]]
-then
+if [[ -z ${ORIGIN} ]]; then
 	git fetch origin
 
 	# Set ORIGIN as origin if left blank
@@ -96,17 +96,27 @@ else
 	git fetch ${ORIGIN}
 fi;
 
-echo "Which branch contains the updated asset files?"
+# List Branches
+echo "---------------------------------------------------------------------"
 git branch -r || { echo "Unable to list branches."; exit 1; }
-echo ""
-read -p ${ORIGIN}"/"${BRANCH}
+echo "---------------------------------------------------------------------"
+read -p "Which branch contains the updated asset files? /" BRANCH
 
 # Switch Branch
-echo "Switching to branch"
-git checkout ${BRANCH} || { echo "Unable to checkout branch."; exit 1; }
+echo "---------------------------------------------------------------------"
+echo "Switching to branch " ${BRANCH}
+
+# IF BRANCH WAS LEFT EMPTY THEN FETCH "master" BY DEFAULT
+if [[ -z ${BRANCH} ]]; then
+	BRANCH=master
+else
+	git checkout ${BRANCH} || { echo "Unable to checkout branch."; exit 1; }
+fi;
 
 # Remove unwanted files and folders
+echo "---------------------------------------------------------------------"
 echo "Removing unwanted files..."
+echo "---------------------------------------------------------------------"
 rm -Rf .git
 rm -Rf .github
 rm -Rf tests
@@ -132,7 +142,7 @@ rm -f *.sh
 rm -f *.php
 rm -f *.txt
 
-read -p "Enter the directory from your GitHub repository where the assets are stored: " ASSETS_FOLDER
+read -p "Directory where the assets are stored in the repository: " ASSETS_FOLDER
 
 # Copy GitHub asset files to SVN temporary folder.
 cp -prv -f -R ${ASSETS_FOLDER}"/." "../"${TEMP_SVN_REPO}"/"
@@ -141,39 +151,43 @@ cp -prv -f -R ${ASSETS_FOLDER}"/." "../"${TEMP_SVN_REPO}"/"
 cd "../"${TEMP_SVN_REPO}
 
 # Update SVN
+echo "---------------------------------------------------------------------"
 echo "Updating SVN"
 svn update || { echo "Unable to update SVN."; exit 1; }
 
-# Add all JPG and PNG files.
-svn add --force *".png"
-svn add --force *".jpg"
+# Add all asset files.
+svn add --force *
 
 # SVN Commit
-clear
+echo "---------------------------------------------------------------------"
 echo "Getting SVN Status."
 svn status --show-updates
 
 # Deploy Update
-echo ""
+echo "---------------------------------------------------------------------"
 echo "Committing assets to WordPress.org..."
 svn commit -m "Updated assets for "${SVN_REPO_SLUG}"" || {
+echo "---------------------------------------------------------------------"
 	echo "Unable to commit. Loading last log.";
 	svn log -l 1
 	exit 1;
 }
 
+echo "---------------------------------------------------------------------"
 read -p "Asset files were updated. Press [ENTER] to clean up."
 clear
 
 # Remove the temporary directories
+echo "---------------------------------------------------------------------"
 echo "Cleaning Up..."
+echo "---------------------------------------------------------------------"
 cd "../"
 rm -Rf $ROOT_PATH$TEMP_GITHUB_REPO
 rm -Rf $ROOT_PATH$TEMP_SVN_REPO
 
 # Done
 echo "Update Done."
-echo ""
+echo "---------------------------------------------------------------------"
 read -p "Press [ENTER] to close program."
 
 clear
